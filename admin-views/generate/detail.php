@@ -80,7 +80,7 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
                 </button>
                 <div class="vr"></div>
                 <button type="button" class="btn btn-sm btn-info" id="btnPrint" disabled>
-                    <i class="bx bx-printer me-1"></i>In barcode (<span id="printCount">0</span>)
+                    <i class="bx bx-printer me-1"></i>In mã định danh (<span id="printCount">0</span>)
                 </button>
             </div>
         </div>
@@ -100,7 +100,7 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
                 <button type="button" class="btn btn-sm print-opt-toggle active" id="optShowLot" data-active="1">
                     <i class="bx bx-check me-1 toggle-icon"></i>Lô / HSD
                 </button>
-                <span class="text-muted ms-2" style="font-size:11px;">Bấm để bật/tắt • Chỉ áp dụng khi in barcode</span>
+                <span class="text-muted ms-2" style="font-size:11px;">Bấm để bật/tắt • Chỉ áp dụng khi in mã định danh</span>
             </div>
         </div>
     </div>
@@ -113,7 +113,7 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
                     <tr>
                         <th style="width:40px;"><input type="checkbox" class="form-check-input" id="checkAll" /></th>
                         <th>#</th>
-                        <th>Barcode</th>
+                        <th>Mã định danh</th>
                         <th>Sản phẩm</th>
                         <th>Biến thể</th>
                         <th>Lô</th>
