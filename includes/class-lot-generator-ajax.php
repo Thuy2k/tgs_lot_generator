@@ -42,6 +42,10 @@ class TGS_Lot_Generator_Ajax
 
             // ── In barcode ──
             'tgs_lot_gen_print_barcodes',
+
+            // ── Quick-create (modal) ──
+            'tgs_lot_gen_quick_create_product',
+            'tgs_lot_gen_generate_sku',
         ];
 
         foreach ($actions as $action) {
@@ -198,9 +202,11 @@ class TGS_Lot_Generator_Ajax
 
         $sql = $wpdb->prepare(
             "SELECT local_product_name_id, local_product_name, local_product_barcode_main,
-                    local_product_sku, local_product_unit, local_product_price_after_tax
+                    local_product_sku, local_product_unit, local_product_price_after_tax,
+                    local_product_thumbnail, local_product_is_tracking
              FROM {$table}
              WHERE is_deleted = 0
+               AND local_product_is_tracking = 1
                AND (local_product_name LIKE %s OR local_product_barcode_main LIKE %s OR local_product_sku LIKE %s)
              ORDER BY local_product_name ASC
              LIMIT 30",
@@ -208,7 +214,15 @@ class TGS_Lot_Generator_Ajax
         );
 
         $rows = $wpdb->get_results($sql, ARRAY_A);
-        self::json_ok(['products' => $rows ?: []]);
+
+        // Đếm tổng kết quả (bao gồm cả SP ko tracking) để hiện gợi ý "Thêm SP mới"
+        $total_all = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE is_deleted = 0
+               AND (local_product_name LIKE %s OR local_product_barcode_main LIKE %s OR local_product_sku LIKE %s)",
+            "%{$keyword}%", "%{$keyword}%", "%{$keyword}%"
+        ));
+
+        self::json_ok(['products' => $rows ?: [], 'total_all' => intval($total_all), 'keyword' => $keyword]);
     }
 
     /**
@@ -833,5 +847,114 @@ class TGS_Lot_Generator_Ajax
         </body>
         </html>
         <?php
+    }
+
+    /* =========================================================================
+     * G. QUICK-CREATE (Modal thêm nhanh SP / Biến thể)
+     * ========================================================================= */
+
+    /**
+     * Sinh SKU ngẫu nhiên (giống tgs_shop_product_generate_sku)
+     */
+    public static function tgs_lot_gen_generate_sku()
+    {
+        self::verify();
+        global $wpdb;
+
+        $table = defined('TGS_TABLE_LOCAL_PRODUCT_NAME') ? TGS_TABLE_LOCAL_PRODUCT_NAME : $wpdb->prefix . 'local_product_name';
+
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $sku = '1' . str_pad(mt_rand(0, 99999999), 8, '0', STR_PAD_LEFT);
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE local_product_sku = %s AND (is_deleted IS NULL OR is_deleted = 0)",
+                $sku
+            ));
+            if ($exists == 0) {
+                self::json_ok(['sku' => $sku]);
+                return;
+            }
+        }
+        self::json_err('Không thể tạo mã SKU. Thử lại.');
+        return;
+    }
+
+    /**
+     * Thêm nhanh sản phẩm (từ modal, không cần ảnh/gallery)
+     * Mặc định bật theo dõi lô hàng (is_tracking=1), trạng thái hoạt động
+     */
+    public static function tgs_lot_gen_quick_create_product()
+    {
+        self::verify();
+        global $wpdb;
+
+        $name    = sanitize_text_field($_POST['product_name'] ?? '');
+        $sku     = sanitize_text_field($_POST['product_sku'] ?? '');
+        $barcode = sanitize_text_field($_POST['product_barcode'] ?? '');
+        $price_after_tax = floatval($_POST['product_price_after_tax'] ?? 0);
+        $tax     = floatval($_POST['product_tax'] ?? 8);
+        $price   = floatval($_POST['product_price'] ?? 0);
+        $unit    = sanitize_text_field($_POST['product_unit'] ?? 'Lon');
+        $status  = intval($_POST['product_status'] ?? 1);
+
+        if (empty($name)) { self::json_err('Tên sản phẩm không được trống.'); return; }
+        if (empty($sku))  { self::json_err('Mã SKU không được trống.'); return; }
+
+        $table = defined('TGS_TABLE_LOCAL_PRODUCT_NAME') ? TGS_TABLE_LOCAL_PRODUCT_NAME : $wpdb->prefix . 'local_product_name';
+
+        // Check SKU unique
+        $sku_exists = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$table} WHERE local_product_sku = %s AND (is_deleted IS NULL OR is_deleted = 0)",
+            $sku
+        ));
+        if ($sku_exists > 0) { self::json_err('Mã SKU đã tồn tại.'); return; }
+
+        $now = current_time('mysql');
+        $meta = wp_json_encode([
+            'sku'     => $sku,
+            'weight'  => 0,
+            'unit'    => $unit,
+            'brand'   => '',
+            'origin'  => '',
+            'gallery' => [],
+            'created_via' => 'tgs_lot_generator_quick_create',
+        ], JSON_UNESCAPED_UNICODE);
+
+        $wpdb->insert($table, [
+            'local_product_name'            => $name,
+            'local_product_sku'             => $sku,
+            'local_product_barcode_main'    => $barcode,
+            'local_product_price'           => $price,
+            'local_product_tax'             => $tax,
+            'local_product_price_after_tax' => $price_after_tax,
+            'local_product_unit'            => $unit,
+            'local_product_status'          => $status ? 'active' : 'inactive',
+            'local_product_is_tracking'     => 1, // Luôn bật tracking
+            'local_product_meta'            => $meta,
+            'local_product_thumbnail'       => '',
+            'user_id'                       => get_current_user_id(),
+            'is_deleted'                    => 0,
+            'created_at'                    => $now,
+            'updated_at'                    => $now,
+        ]);
+
+        $new_id = $wpdb->insert_id;
+        if (!$new_id) {
+            self::json_err('Không thể tạo sản phẩm. DB: ' . $wpdb->last_error);
+            return;
+        }
+
+        // Trả về product data đầy đủ để JS tự chọn ngay
+        self::json_ok([
+            'product' => [
+                'local_product_name_id'         => $new_id,
+                'local_product_name'            => $name,
+                'local_product_sku'             => $sku,
+                'local_product_barcode_main'    => $barcode,
+                'local_product_price_after_tax' => $price_after_tax,
+                'local_product_unit'            => $unit,
+                'local_product_thumbnail'       => '',
+                'local_product_is_tracking'     => 1,
+            ]
+        ], 'Đã thêm sản phẩm "' . $name . '" thành công!');
     }
 }

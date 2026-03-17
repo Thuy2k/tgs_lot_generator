@@ -3,8 +3,8 @@
  * Sinh mã định danh — Trang tạo mới
  *
  * Flow:
- * 1. Tìm sản phẩm (autocomplete)
- * 2. Chọn biến thể (nếu có)
+ * 1. Tìm sản phẩm có bật tracking (autocomplete) — hoặc thêm nhanh bằng modal
+ * 2. Chọn biến thể (nếu có) — hoặc thêm nhanh biến thể bằng modal
  * 3. Nhập số lượng, lô code, HSD
  * 4. Bấm "Sinh mã" → tạo phiếu + lots
  * 5. Chuyển tới trang chi tiết
@@ -18,9 +18,12 @@ if (!defined('ABSPATH')) exit;
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0">
-            <i class="bx bx-barcode me-2"></i>Sinh mã định danh mới
-        </h4>
+        <div>
+            <h4 class="fw-bold mb-1">
+                <i class="bx bx-barcode me-2"></i>Sinh mã định danh mới
+            </h4>
+            <p class="text-muted mb-0" style="font-size:13px;">Chỉ hiển thị sản phẩm đã bật <strong>theo dõi lô hàng</strong>. Chưa có? Bấm "Thêm nhanh SP".</p>
+        </div>
         <a href="<?php echo function_exists('tgs_url') ? tgs_url('lot-gen-list') : '#'; ?>" class="btn btn-outline-secondary">
             <i class="bx bx-list-ul me-1"></i>DS Phiếu
         </a>
@@ -31,60 +34,78 @@ if (!defined('ABSPATH')) exit;
         <div class="card-body">
             <form id="lotGenForm" autocomplete="off">
 
-                <!-- Tìm sản phẩm -->
+                <!-- ① Tìm sản phẩm -->
                 <div class="row mb-3">
                     <div class="col-md-8">
-                        <label class="form-label fw-semibold">Sản phẩm <span class="text-danger">*</span></label>
-                        <div class="position-relative">
-                            <input type="text" id="productSearch" class="form-control" placeholder="Nhập tên, barcode hoặc SKU để tìm sản phẩm..." />
-                            <input type="hidden" id="productId" name="product_id" value="" />
-                            <div id="productDropdown" class="dropdown-menu w-100" style="display:none; max-height:300px; overflow-y:auto;"></div>
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-primary rounded-pill me-2" style="font-size:12px;">1</span>
+                            <label class="form-label fw-semibold mb-0">Sản phẩm <span class="text-danger">*</span></label>
+                            <span class="badge bg-label-success ms-2" style="font-size:10px;"><i class="bx bx-check me-1"></i>Chỉ SP theo dõi lô</span>
                         </div>
+                        <div class="position-relative gen-search-wrap">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bx bx-search text-muted"></i></span>
+                                <input type="text" id="productSearch" class="form-control border-start-0" placeholder="Gõ tên sản phẩm, mã barcode hoặc SKU…" />
+                            </div>
+                            <input type="hidden" id="productId" name="product_id" value="" />
+                            <div id="productDropdown" class="gen-product-dropdown" style="display:none;"></div>
+                        </div>
+                        <!-- Thông tin SP đã chọn -->
                         <div id="productInfo" class="mt-2" style="display:none;">
-                            <div class="alert alert-light border py-2 px-3 mb-0">
-                                <div class="d-flex justify-content-between">
-                                    <span id="productName" class="fw-semibold"></span>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" id="clearProduct"><i class="bx bx-x"></i></button>
+                            <div class="alert alert-success border-0 py-2 px-3 mb-0">
+                                <div class="d-flex align-items-center">
+                                    <img id="productThumb" src="" alt="" class="rounded me-2 flex-shrink-0" style="width:40px; height:40px; object-fit:cover; border:1px solid #ddd;" />
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <span id="productName" class="fw-semibold"></span>
+                                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="clearProduct">
+                                                <i class="bx bx-x me-1"></i>Đổi SP
+                                            </button>
+                                        </div>
+                                        <div class="mt-1" style="font-size:12px;">
+                                            <span class="badge bg-label-secondary me-1">SKU: <b id="productSku">—</b></span>
+                                            <span class="badge bg-label-secondary me-1">Barcode: <b id="productBarcode">—</b></span>
+                                            <span class="badge bg-label-secondary me-1">ĐVT: <b id="productUnit">—</b></span>
+                                            <span class="badge bg-label-primary">Giá: <b id="productPrice">—</b></span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <small class="text-muted">
-                                    Barcode: <span id="productBarcode">-</span> |
-                                    SKU: <span id="productSku">-</span> |
-                                    ĐVT: <span id="productUnit">-</span> |
-                                    Giá: <span id="productPrice">-</span>
-                                </small>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Tồn kho hiện tại</label>
+                        <label class="form-label fw-semibold">&nbsp;</label>
                         <div id="stockInfo" class="border rounded p-2 text-center text-muted" style="min-height:38px; line-height:38px;">
                             Chưa chọn SP
                         </div>
                     </div>
                 </div>
 
-                <!-- Biến thể -->
+                <!-- ② Biến thể -->
                 <div class="row mb-3" id="variantRow" style="display:none;">
                     <div class="col-md-6">
-                        <label class="form-label fw-semibold">Biến thể (tùy chọn)</label>
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-primary rounded-pill me-2" style="font-size:12px;">2</span>
+                            <label class="form-label fw-semibold mb-0">Biến thể (tùy chọn)</label>
+                        </div>
                         <select id="variantSelect" class="form-select" name="variant_id">
                             <option value="0">-- Không chọn biến thể --</option>
                         </select>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">&nbsp;</label>
-                        <div>
-                            <a href="<?php echo function_exists('tgs_url') ? tgs_url('lot-gen-variants') : '#'; ?>" class="btn btn-sm btn-outline-primary" target="_blank">
-                                <i class="bx bx-plus me-1"></i>Quản lý biến thể
-                            </a>
-                        </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <button type="button" class="btn btn-sm btn-outline-info" id="btnQuickVariant">
+                            <i class="bx bx-plus me-1"></i>Thêm nhanh biến thể
+                        </button>
                     </div>
                 </div>
 
-                <!-- Số lượng + Lô -->
+                <!-- ③ Số lượng + Lô -->
                 <div class="row mb-3">
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Số lượng <span class="text-danger">*</span></label>
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-primary rounded-pill me-2" style="font-size:12px;">3</span>
+                            <label class="form-label fw-semibold mb-0">Số lượng <span class="text-danger">*</span></label>
+                        </div>
                         <input type="number" id="quantity" name="quantity" class="form-control" min="1" max="5000" value="1" />
                         <small class="text-muted">Tối đa 5000</small>
                     </div>
@@ -131,3 +152,9 @@ if (!defined('ABSPATH')) exit;
         </div>
     </div>
 </div>
+
+<?php
+// Include modals
+include TGS_LOT_GEN_VIEWS . 'components/modal-quick-product.php';
+include TGS_LOT_GEN_VIEWS . 'components/modal-quick-variant.php';
+?>
