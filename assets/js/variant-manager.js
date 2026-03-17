@@ -378,7 +378,8 @@
         if (kw.length >= 2) $('#qpName').val(kw);
         // Generate SKU
         varFetchNewSku();
-        const modal = new bootstrap.Modal(document.getElementById('modalQuickProduct'));
+        // Open (getOrCreateInstance tránh lỗi mở lần 2)
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuickProduct'));
         modal.show();
     }
 

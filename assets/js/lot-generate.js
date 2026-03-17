@@ -253,8 +253,8 @@
         if (kw.length >= 2) $('#qpName').val(kw);
         // Generate SKU
         fetchNewSku();
-        // Open
-        const modal = new bootstrap.Modal(document.getElementById('modalQuickProduct'));
+        // Open (getOrCreateInstance tránh lỗi mở lần 2)
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuickProduct'));
         modal.show();
     }
 
@@ -366,8 +366,8 @@
         $('#qvValueChips').html('');
         // Hiện tên SP đang chọn
         $('#qvProductName').text(selectedProduct ? selectedProduct.name : '—');
-        // Open
-        const modal = new bootstrap.Modal(document.getElementById('modalQuickVariant'));
+        // Open (getOrCreateInstance tránh lỗi mở lần 2)
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuickVariant'));
         modal.show();
     }
 
