@@ -67,6 +67,7 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="btnDeselectAll">
                     <i class="bx bx-square me-1"></i>Bỏ chọn
                 </button>
+                <span class="badge bg-label-primary" id="selectedCountBadge" style="display:none;">Đã chọn: <b id="selectedCount">0</b></span>
                 <div class="vr"></div>
                 <button type="button" class="btn btn-sm btn-success" id="btnActivate" disabled>
                     <i class="bx bx-check-circle me-1"></i>Kích hoạt (<span id="activateCount">0</span>)
@@ -81,11 +82,25 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
                 <button type="button" class="btn btn-sm btn-info" id="btnPrint" disabled>
                     <i class="bx bx-printer me-1"></i>In barcode (<span id="printCount">0</span>)
                 </button>
-                <div class="ms-auto">
-                    <label class="me-2"><input type="checkbox" id="optShowPrice" checked /> Giá</label>
-                    <label class="me-2"><input type="checkbox" id="optShowVariant" checked /> Biến thể</label>
-                    <label><input type="checkbox" id="optShowLot" checked /> Lô / HSD</label>
-                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cấu hình in -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <span class="text-muted fw-semibold" style="font-size:13px;"><i class="bx bx-cog me-1"></i>Hiển thị trên nhãn in:</span>
+                <button type="button" class="btn btn-sm print-opt-toggle active" id="optShowPrice" data-active="1">
+                    <i class="bx bx-check me-1 toggle-icon"></i>Giá bán
+                </button>
+                <button type="button" class="btn btn-sm print-opt-toggle active" id="optShowVariant" data-active="1">
+                    <i class="bx bx-check me-1 toggle-icon"></i>Biến thể
+                </button>
+                <button type="button" class="btn btn-sm print-opt-toggle active" id="optShowLot" data-active="1">
+                    <i class="bx bx-check me-1 toggle-icon"></i>Lô / HSD
+                </button>
+                <span class="text-muted ms-2" style="font-size:11px;">Bấm để bật/tắt • Chỉ áp dụng khi in barcode</span>
             </div>
         </div>
     </div>
@@ -96,7 +111,7 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
             <table class="table table-hover table-sm mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="width:40px;"><input type="checkbox" id="checkAll" /></th>
+                        <th style="width:40px;"><input type="checkbox" class="form-check-input" id="checkAll" /></th>
                         <th>#</th>
                         <th>Barcode</th>
                         <th>Sản phẩm</th>

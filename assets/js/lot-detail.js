@@ -3,9 +3,9 @@
  *
  * Handles:
  * - Load detail + lots
- * - Select / deselect lots
+ * - Select / deselect lots (with row highlighting)
  * - Activate / Deactivate / Delete lots
- * - Print barcodes
+ * - Print barcodes (with toggle config)
  *
  * @package tgs_lot_generator
  */
@@ -20,6 +20,19 @@
         $('#lotsTableBody').html('<tr><td colspan="8" class="text-center text-danger py-4">Không có ledger_id. Vui lòng chọn phiếu từ danh sách.</td></tr>');
     }
 
+    /* ── Toast (lightweight notification) ─────────────────────────── */
+
+    function showToast(msg, type) {
+        type = type || 'dark';
+        const bgMap = { success: '#16a34a', danger: '#dc2626', dark: '#1e293b', info: '#696cff', warning: '#f59e0b' };
+        const bg = bgMap[type] || bgMap.dark;
+        const duration = type === 'danger' ? 5000 : 3000;
+        const $t = $('<div class="gen-toast">' + msg + '</div>').css('background', bg);
+        $('body').append($t);
+        setTimeout(() => $t.addClass('show'), 10);
+        setTimeout(() => { $t.removeClass('show'); setTimeout(() => $t.remove(), 300); }, duration);
+    }
+
     /* ── Load Detail ─────────────────────────────────────────────── */
 
     function loadDetail() {
@@ -29,13 +42,12 @@
             ledger_id: ledgerId
         }, function (res) {
             if (!res.success) {
-                alert('Lỗi: ' + (res.data?.message || 'Không xác định'));
+                showToast('❌ ' + (res.data?.message || 'Không xác định'), 'danger');
                 return;
             }
 
             const d = res.data;
             const l = d.ledger;
-            const meta = d.meta || {};
 
             // Header
             $('#ticketCode').text(l.local_ledger_code);
@@ -83,10 +95,10 @@
             const rowClass = isDeleted ? 'table-danger text-decoration-line-through' : '';
             const canCheck = !isDeleted;
 
-            html += `<tr class="${rowClass}" data-lot-id="${lot.global_product_lot_id}" data-status="${status}" data-deleted="${lot.is_deleted}">
-                <td>${canCheck ? `<input type="checkbox" class="lot-check" value="${lot.global_product_lot_id}" />` : ''}</td>
+            html += `<tr class="lot-row ${rowClass}" data-lot-id="${lot.global_product_lot_id}" data-status="${status}" data-deleted="${lot.is_deleted}">
+                <td class="lot-check-cell">${canCheck ? `<input type="checkbox" class="form-check-input lot-check" value="${lot.global_product_lot_id}" />` : ''}</td>
                 <td>${idx + 1}</td>
-                <td><code>${escHtml(lot.global_product_lot_barcode)}</code></td>
+                <td><code class="lot-barcode">${escHtml(lot.global_product_lot_barcode)}</code></td>
                 <td>${escHtml(lot.local_product_name || '-')}</td>
                 <td>${escHtml(variantStr)}</td>
                 <td>${escHtml(lot.lot_code || '-')}</td>
@@ -99,17 +111,58 @@
         updateToolbar();
     }
 
-    /* ── Selection ───────────────────────────────────────────────── */
+    /* ── Selection — with row highlighting ────────────────────────── */
 
-    $(document).on('change', '.lot-check, #checkAll', function () {
-        if (this.id === 'checkAll') {
-            $('.lot-check').prop('checked', this.checked);
+    /* Click anywhere on the row (except links) → toggle checkbox */
+    $(document).on('click', '.lot-row', function (e) {
+        // Nếu click vào checkbox thì để nó tự xử lý
+        if ($(e.target).is('.lot-check')) return;
+        const $cb = $(this).find('.lot-check');
+        if (!$cb.length) return;
+        $cb.prop('checked', !$cb.prop('checked')).trigger('change');
+    });
+
+    /* Checkbox change → highlight row */
+    $(document).on('change', '.lot-check', function () {
+        const $tr = $(this).closest('tr');
+        if (this.checked) {
+            $tr.addClass('lot-row-selected');
+        } else {
+            $tr.removeClass('lot-row-selected');
         }
+        syncCheckAll();
         updateToolbar();
     });
 
-    $('#btnSelectAll').on('click', () => { $('.lot-check').prop('checked', true); $('#checkAll').prop('checked', true); updateToolbar(); });
-    $('#btnDeselectAll').on('click', () => { $('.lot-check').prop('checked', false); $('#checkAll').prop('checked', false); updateToolbar(); });
+    /* Header checkAll */
+    $(document).on('change', '#checkAll', function () {
+        const checked = this.checked;
+        $('.lot-check').each(function () {
+            $(this).prop('checked', checked).closest('tr').toggleClass('lot-row-selected', checked);
+        });
+        updateToolbar();
+    });
+
+    /** Sync #checkAll state with individual checkboxes */
+    function syncCheckAll() {
+        const total = $('.lot-check').length;
+        const checked = $('.lot-check:checked').length;
+        $('#checkAll').prop('checked', total > 0 && total === checked);
+    }
+
+    /* Toolbar buttons */
+    $('#btnSelectAll').on('click', function () {
+        $('.lot-check').prop('checked', true).closest('tr').addClass('lot-row-selected');
+        $('#checkAll').prop('checked', true);
+        updateToolbar();
+        showToast('✅ Đã chọn tất cả ' + $('.lot-check').length + ' mã', 'info');
+    });
+
+    $('#btnDeselectAll').on('click', function () {
+        $('.lot-check').prop('checked', false).closest('tr').removeClass('lot-row-selected');
+        $('#checkAll').prop('checked', false);
+        updateToolbar();
+    });
 
     function getSelectedIds(filterFn) {
         const ids = [];
@@ -128,6 +181,14 @@
         const canDelete = getSelectedIds($tr => $tr.data('status') == 100 && $tr.data('deleted') == 0);
         const canPrint = getSelectedIds($tr => $tr.data('deleted') == 0);
 
+        // Selection count
+        if (allChecked.length > 0) {
+            $('#selectedCountBadge').show();
+            $('#selectedCount').text(allChecked.length);
+        } else {
+            $('#selectedCountBadge').hide();
+        }
+
         $('#activateCount').text(canActivate.length);
         $('#deactivateCount').text(canDeactivate.length);
         $('#deleteCount').text(canDelete.length);
@@ -143,7 +204,7 @@
 
     function doAction(action, label, filterFn) {
         const ids = getSelectedIds(filterFn);
-        if (!ids.length) { alert('Chưa chọn mã phù hợp.'); return; }
+        if (!ids.length) { showToast('⚠️ Chưa chọn mã phù hợp', 'warning'); return; }
         if (!confirm(`${label} ${ids.length} mã?`)) return;
 
         $.post(C.ajaxUrl, {
@@ -152,10 +213,10 @@
             lot_ids: JSON.stringify(ids)
         }, function (res) {
             if (res.success) {
-                alert('✅ ' + res.data.message);
+                showToast('✅ ' + res.data.message, 'success');
                 loadDetail();
             } else {
-                alert('Lỗi: ' + (res.data?.message || 'Không xác định'));
+                showToast('❌ ' + (res.data?.message || 'Không xác định'), 'danger');
             }
         });
     }
@@ -164,11 +225,27 @@
     $('#btnDeactivate').on('click', () => doAction('tgs_lot_gen_deactivate_lots', 'Hủy kích hoạt', $tr => $tr.data('status') == 1 && $tr.data('deleted') == 0));
     $('#btnDelete').on('click', () => doAction('tgs_lot_gen_delete_lots', 'Xóa', $tr => $tr.data('status') == 100 && $tr.data('deleted') == 0));
 
+    /* ── Print Config Toggle Buttons ──────────────────────────────── */
+
+    $(document).on('click', '.print-opt-toggle', function () {
+        const isActive = $(this).data('active') === 1;
+        $(this).data('active', isActive ? 0 : 1);
+        $(this).toggleClass('active', !isActive);
+
+        // Cập nhật icon
+        const $icon = $(this).find('.toggle-icon');
+        if (!isActive) {
+            $icon.removeClass('bx-x').addClass('bx-check');
+        } else {
+            $icon.removeClass('bx-check').addClass('bx-x');
+        }
+    });
+
     /* ── Print ───────────────────────────────────────────────────── */
 
     $('#btnPrint').on('click', function () {
         const ids = getSelectedIds($tr => $tr.data('deleted') == 0);
-        if (!ids.length) { alert('Chưa chọn mã nào.'); return; }
+        if (!ids.length) { showToast('⚠️ Chưa chọn mã nào', 'warning'); return; }
 
         // Get barcodes from selected lots
         const barcodes = [];
@@ -179,9 +256,9 @@
 
         if (!barcodes.length) return;
 
-        const showPrice = $('#optShowPrice').is(':checked') ? 1 : 0;
-        const showVariant = $('#optShowVariant').is(':checked') ? 1 : 0;
-        const showLot = $('#optShowLot').is(':checked') ? 1 : 0;
+        const showPrice   = $('#optShowPrice').data('active') ? 1 : 0;
+        const showVariant = $('#optShowVariant').data('active') ? 1 : 0;
+        const showLot     = $('#optShowLot').data('active') ? 1 : 0;
 
         const url = C.ajaxUrl + '?' + $.param({
             action: 'tgs_lot_gen_print_barcodes',

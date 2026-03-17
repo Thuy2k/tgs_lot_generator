@@ -261,6 +261,87 @@
     border-radius: 3px;
 }
 
+/* ── Row selection highlighting ───────────────────────────────── */
+.lot-row {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.lot-row:not(.table-danger):hover {
+    background: #f8f9ff !important;
+}
+.lot-row.lot-row-selected {
+    background: #e8eaff !important;
+    border-left: 3px solid #696cff;
+}
+.lot-row.lot-row-selected td:first-child {
+    padding-left: calc(0.5rem - 3px);
+}
+.lot-row.lot-row-selected .lot-barcode {
+    background: #696cff;
+    color: #fff;
+}
+.lot-row .lot-check-cell {
+    vertical-align: middle;
+}
+.lot-row .form-check-input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    margin: 0;
+}
+.lot-row .form-check-input:checked {
+    background-color: #696cff;
+    border-color: #696cff;
+}
+#checkAll {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* ── Selected count badge ─────────────────────────────────────── */
+#selectedCountBadge {
+    font-size: 12px;
+    animation: fadeInBadge 0.2s ease;
+}
+@keyframes fadeInBadge {
+    from { opacity: 0; transform: scale(0.8); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Print config toggle buttons ──────────────────────────────── */
+.print-opt-toggle {
+    border: 1px solid #d4d8dd;
+    background: #f5f5f9;
+    color: #8592a3;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.print-opt-toggle:hover {
+    border-color: #696cff;
+    color: #696cff;
+    background: #f0f2ff;
+}
+.print-opt-toggle.active {
+    border-color: #696cff;
+    background: #696cff;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(105, 108, 255, 0.3);
+}
+.print-opt-toggle.active:hover {
+    background: #5f63e8;
+    border-color: #5f63e8;
+}
+.print-opt-toggle .toggle-icon {
+    font-size: 14px;
+    vertical-align: -2px;
+}
+
 /* ── Toolbar ──────────────────────────────────────────────────── */
 .vr {
     border-left: 1px solid #ddd;
