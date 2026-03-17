@@ -172,3 +172,8 @@ if (!defined('ABSPATH')) exit;
         </div>
     </div>
 </div>
+
+<?php
+// Include modal thêm nhanh sản phẩm (cho trường hợp SP chưa tồn tại)
+include TGS_LOT_GEN_VIEWS . 'components/modal-quick-product.php';
+?>

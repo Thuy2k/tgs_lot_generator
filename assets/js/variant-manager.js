@@ -40,24 +40,29 @@
                 keyword: kw,
                 blog_id: C.blogId
             }, function (res) {
-                if (!res.success || !res.data.products.length) {
-                    $('#varProductDropdown').html('<div class="var-dd-item var-dd-empty"><i class="bx bx-search-alt me-1"></i>Không tìm thấy sản phẩm nào</div>').show();
-                    return;
-                }
                 let html = '';
-                res.data.products.forEach(p => {
-                    const price = parseFloat(p.local_product_price_after_tax || 0);
-                    const priceFmt = price > 0 ? new Intl.NumberFormat('vi-VN').format(price) + 'đ' : '';
-                    html += `<a href="#" class="var-dd-item var-product-item" data-id="${p.local_product_name_id}"
-                        data-name="${encodeURIComponent(p.local_product_name)}">
-                        <div class="var-dd-name">${p.local_product_name}</div>
-                        <div class="var-dd-meta">
-                            <span><i class="bx bx-barcode me-1"></i>${p.local_product_barcode_main || '—'}</span>
-                            <span><i class="bx bx-purchase-tag me-1"></i>${p.local_product_sku || '—'}</span>
-                            ${priceFmt ? '<span class="var-dd-price">' + priceFmt + '</span>' : ''}
-                        </div>
-                    </a>`;
-                });
+                if (res.success && res.data.products.length) {
+                    res.data.products.forEach(p => {
+                        const price = parseFloat(p.local_product_price_after_tax || 0);
+                        const priceFmt = price > 0 ? new Intl.NumberFormat('vi-VN').format(price) + 'đ' : '';
+                        html += `<a href="#" class="var-dd-item var-product-item" data-id="${p.local_product_name_id}"
+                            data-name="${encodeURIComponent(p.local_product_name)}">
+                            <div class="var-dd-name">${escHtml(p.local_product_name)}</div>
+                            <div class="var-dd-meta">
+                                <span><i class="bx bx-barcode me-1"></i>${escHtml(p.local_product_barcode_main || '—')}</span>
+                                <span><i class="bx bx-purchase-tag me-1"></i>${escHtml(p.local_product_sku || '—')}</span>
+                                ${priceFmt ? '<span class="var-dd-price">' + priceFmt + '</span>' : ''}
+                            </div>
+                        </a>`;
+                    });
+                } else {
+                    html += `<div class="var-dd-item var-dd-empty"><i class="bx bx-search-alt me-1"></i>Không tìm thấy SP nào có theo dõi lô với "<b>${escHtml(kw)}</b>"</div>`;
+                }
+                // Nút thêm nhanh SP
+                html += `<a href="#" class="var-dd-item" id="varDdAddProduct" style="background:#f8f9ff;border-top:1px solid #e0e0e0;text-align:center;">
+                    <i class="bx bx-plus-circle me-1 text-primary"></i>
+                    <strong class="text-primary">Thêm nhanh sản phẩm mới</strong>
+                </a>`;
                 $('#varProductDropdown').html(html).show();
             });
         }, 300);
@@ -350,5 +355,114 @@
         if (!str) return '';
         return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
+
+    /* ====================================================================
+     * MODAL: Thêm nhanh sản phẩm (trên trang Quản lý biến thể)
+     * ==================================================================== */
+
+    /* Mở modal khi click "Thêm nhanh SP" từ dropdown */
+    $(document).on('click', '#varDdAddProduct', function (e) {
+        e.preventDefault();
+        $('#varProductDropdown').hide();
+        openVarQuickProductModal();
+    });
+
+    function openVarQuickProductModal() {
+        $('#quickProductForm')[0].reset();
+        $('#qpPriceBeforeTax').val('');
+        $('#qpStatus').prop('checked', true);
+        $('#qpStatusLabel').text('Hoạt động');
+        $('#qpTax').val(8);
+        // Pre-fill name from search box
+        const kw = $('#varProductSearch').val().trim();
+        if (kw.length >= 2) $('#qpName').val(kw);
+        // Generate SKU
+        varFetchNewSku();
+        const modal = new bootstrap.Modal(document.getElementById('modalQuickProduct'));
+        modal.show();
+    }
+
+    function varFetchNewSku() {
+        $('#qpSku').val('Đang tạo...').addClass('text-muted');
+        $.post(C.ajaxUrl, { action: 'tgs_lot_gen_generate_sku', nonce: C.nonce }, function (res) {
+            if (res.success) {
+                $('#qpSku').val(res.data.sku).removeClass('text-muted');
+            } else {
+                $('#qpSku').val('').removeClass('text-muted');
+            }
+        });
+    }
+
+    /* SKU refresh */
+    $('#qpRefreshSku').on('click', varFetchNewSku);
+
+    /* Price calc */
+    function varCalcPrice() {
+        const afterTax = parseFloat($('#qpPriceAfterTax').val().replace(/[^\d.]/g, '')) || 0;
+        const tax = parseFloat($('#qpTax').val()) || 0;
+        if (afterTax > 0 && tax >= 0) {
+            const before = Math.round(afterTax / (1 + tax / 100));
+            $('#qpPriceBeforeTax').val(new Intl.NumberFormat('vi-VN').format(before));
+        } else {
+            $('#qpPriceBeforeTax').val('');
+        }
+    }
+    $('#qpPriceAfterTax, #qpTax').on('input change', varCalcPrice);
+
+    /* Status toggle */
+    $('#qpStatus').on('change', function () {
+        $('#qpStatusLabel').text(this.checked ? 'Hoạt động' : 'Ngưng');
+    });
+
+    /* Submit: Create product → auto-select trên trang variant */
+    $('#quickProductForm').on('submit', function (e) {
+        e.preventDefault();
+        const name = $('#qpName').val().trim();
+        const sku  = $('#qpSku').val().trim();
+        if (!name) { showToast('⚠️ Vui lòng nhập tên SP'); return; }
+        if (!sku)  { showToast('⚠️ Chưa có SKU, bấm refresh'); return; }
+
+        const priceAfterTax = parseFloat($('#qpPriceAfterTax').val().replace(/[^\d.]/g, '')) || 0;
+        const tax = parseFloat($('#qpTax').val()) || 0;
+        const priceBefore = priceAfterTax > 0 ? Math.round(priceAfterTax / (1 + tax / 100)) : 0;
+
+        $('#qpBtnSave').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Đang tạo...');
+
+        $.post(C.ajaxUrl, {
+            action: 'tgs_lot_gen_quick_create_product',
+            nonce: C.nonce,
+            product_name: name,
+            product_sku: sku,
+            product_barcode: $('#qpBarcode').val().trim(),
+            product_price_after_tax: priceAfterTax,
+            product_tax: tax,
+            product_price: priceBefore,
+            product_unit: $('#qpUnit').val(),
+            product_status: $('#qpStatus').is(':checked') ? 1 : 0
+        }, function (res) {
+            $('#qpBtnSave').prop('disabled', false).html('<i class="bx bx-check me-1"></i>Tạo sản phẩm & chọn ngay');
+            if (!res.success) { showToast('❌ ' + (res.data?.message || 'Lỗi')); return; }
+
+            bootstrap.Modal.getInstance(document.getElementById('modalQuickProduct'))?.hide();
+
+            // Auto-select product trên trang variant
+            const p = res.data.product;
+            selectedProductId = p.local_product_name_id;
+            const pName = p.local_product_name;
+            $('#varProductId').val(selectedProductId);
+            $('#varProductSearch').val(pName).prop('disabled', true);
+            $('#varProductName').text(pName);
+            $('#varProductInfo').show();
+            $('#varProductDropdown').hide();
+            $('#variantWorkArea').css({ opacity: 1, 'pointer-events': 'auto' });
+            $('#varProductNameBadge').text(pName).show();
+            loadVariants();
+
+            showToast('✅ ' + (res.data.message || 'Đã tạo SP!'));
+        }).fail(function () {
+            $('#qpBtnSave').prop('disabled', false).html('<i class="bx bx-check me-1"></i>Tạo sản phẩm & chọn ngay');
+            showToast('❌ Lỗi kết nối server');
+        });
+    });
 
 })(jQuery);
