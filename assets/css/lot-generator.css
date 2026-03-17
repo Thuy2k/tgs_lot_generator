@@ -429,3 +429,23 @@
 #selectedBoxCard {
     border-left: 3px solid #696cff !important;
 }
+
+/* ── EXP date picker — hide value display of native input, keep calendar icon ── */
+#expDatePicker::-webkit-datetime-edit,
+#expDatePicker::-webkit-datetime-edit-fields-wrapper {
+    visibility: hidden;
+    width: 0;
+    padding: 0;
+    margin: 0;
+}
+#expDatePicker::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 18px;
+}
+#expDatePicker {
+    max-width: 42px !important;
+    min-width: 42px;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}

@@ -115,7 +115,11 @@ if (!defined('ABSPATH')) exit;
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Hạn sử dụng (EXP)</label>
-                        <input type="date" id="expDate" name="exp_date" class="form-control" />
+                        <div class="input-group">
+                            <input type="text" id="expDateDisplay" class="form-control" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off" />
+                            <input type="date" id="expDatePicker" class="form-control" style="max-width:42px; padding-left:0; padding-right:8px; opacity:0.6; cursor:pointer;" tabindex="-1" />
+                        </div>
+                        <input type="hidden" id="expDate" name="exp_date" value="" />
                     </div>
                 </div>
 

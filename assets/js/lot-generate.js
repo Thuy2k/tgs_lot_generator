@@ -514,13 +514,52 @@
     });
 
     /* ====================================================================
-     * ⑦ RESET
+     * ⑦ EXP DATE — dd/mm/yyyy display ↔ YYYY-MM-DD hidden
+     * ==================================================================== */
+
+    /* Khi user gõ vào ô hiển thị dd/mm/yyyy */
+    $('#expDateDisplay').on('input', function () {
+        let v = $(this).val().replace(/[^\d]/g, '');  // chỉ giữ số
+        // Auto-chèn dấu /
+        if (v.length > 4) v = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4, 8);
+        else if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
+        $(this).val(v);
+        syncDisplayToHidden();
+    });
+
+    /* Khi user chọn ngày từ native date picker */
+    $('#expDatePicker').on('change', function () {
+        const iso = $(this).val(); // YYYY-MM-DD
+        if (!iso) { $('#expDate').val(''); $('#expDateDisplay').val(''); return; }
+        const parts = iso.split('-');
+        $('#expDateDisplay').val(parts[2] + '/' + parts[1] + '/' + parts[0]);
+        $('#expDate').val(iso);
+    });
+
+    /* Parse dd/mm/yyyy → YYYY-MM-DD vào hidden input */
+    function syncDisplayToHidden() {
+        const txt = $('#expDateDisplay').val();
+        const m = txt.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (m) {
+            const d = parseInt(m[1]), mo = parseInt(m[2]), y = parseInt(m[3]);
+            if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12 && y >= 2000 && y <= 2099) {
+                const iso = m[3] + '-' + m[2] + '-' + m[1];
+                $('#expDate').val(iso);
+                $('#expDatePicker').val(iso);
+                return;
+            }
+        }
+        $('#expDate').val('');
+    }
+
+    /* ====================================================================
+     * ⑧ RESET
      * ==================================================================== */
 
     $('#btnReset').on('click', function () {
         $('#clearProduct').trigger('click');
         $('#quantity').val(1);
-        $('#lotCode, #expDate, #note').val('');
+        $('#lotCode, #expDate, #expDateDisplay, #expDatePicker, #note').val('');
     });
 
 })(jQuery);
