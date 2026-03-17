@@ -235,11 +235,11 @@
 
     $('#variantForm').on('submit', function (e) {
         e.preventDefault();
-        if (!selectedProductId) { alert('Vui lòng chọn sản phẩm trước.'); return; }
+        if (!selectedProductId) { showToast('Vui lòng chọn sản phẩm trước', 'danger'); return; }
 
         const label = $('#varLabel').val().trim();
         const value = $('#varValue').val().trim();
-        if (!label || !value) { alert('Nhãn và Giá trị là bắt buộc.'); return; }
+        if (!label || !value) { showToast('Nhãn và Giá trị là bắt buộc', 'danger'); return; }
 
         $('#varBtnSave').prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Đang lưu...');
 
@@ -264,12 +264,12 @@
                 resetForm();
                 loadVariants();
             } else {
-                alert('Lỗi: ' + (res.data?.message || 'Không xác định'));
+                showToast('❌ ' + (res.data?.message || 'Không xác định'), 'danger');
                 $('#varBtnSave').html('<i class="bx bx-save me-1"></i>Lưu');
             }
         }).fail(function () {
             $('#varBtnSave').prop('disabled', false).html('<i class="bx bx-save me-1"></i>Lưu');
-            alert('Lỗi kết nối server.');
+            showToast('❌ Lỗi kết nối server', 'danger');
         });
     });
 
@@ -310,7 +310,7 @@
                 showToast('✅ ' + res.data.message);
                 loadVariants();
             } else {
-                alert('Lỗi: ' + (res.data?.message || 'Không xác định'));
+                showToast('❌ ' + (res.data?.message || 'Không xác định'), 'danger');
             }
         });
     });
@@ -334,11 +334,15 @@
 
     /* ── Toast nhẹ (thay alert) ──────────────────────────────────── */
 
-    function showToast(msg) {
-        const $t = $('<div class="var-toast">' + escHtml(msg) + '</div>');
+    function showToast(msg, type) {
+        type = type || 'dark';
+        const bgMap = { success: '#16a34a', danger: '#dc2626', dark: '#1e293b', info: '#696cff' };
+        const bg = bgMap[type] || bgMap.dark;
+        const duration = type === 'danger' ? 5000 : 2500; // Lỗi hiện lâu hơn
+        const $t = $('<div class="var-toast">' + escHtml(msg) + '</div>').css('background', bg);
         $('body').append($t);
         setTimeout(() => $t.addClass('show'), 10);
-        setTimeout(() => { $t.removeClass('show'); setTimeout(() => $t.remove(), 300); }, 2500);
+        setTimeout(() => { $t.removeClass('show'); setTimeout(() => $t.remove(), 300); }, duration);
     }
 
     /* ── Helpers ──────────────────────────────────────────────────── */

@@ -43,10 +43,11 @@
         type = type || 'dark';
         const bgMap = { success: '#16a34a', danger: '#dc2626', dark: '#1e293b', info: '#696cff' };
         const bg = bgMap[type] || bgMap.dark;
+        const duration = type === 'danger' ? 5000 : 3000; // Lỗi hiện lâu hơn
         const $t = $('<div class="gen-toast">' + escHtml(msg) + '</div>').css('background', bg);
         $('body').append($t);
         setTimeout(() => $t.addClass('show'), 10);
-        setTimeout(() => { $t.removeClass('show'); setTimeout(() => $t.remove(), 300); }, 3000);
+        setTimeout(() => { $t.removeClass('show'); setTimeout(() => $t.remove(), 300); }, duration);
     }
 
     /* ====================================================================

@@ -148,6 +148,32 @@ class TGS_Lot_Generator_Ajax
             $data['variant_meta'] = wp_json_encode(json_decode(stripslashes($_POST['variant_meta']), true));
         }
 
+        /* ── Kiểm tra trùng lặp (cùng sản phẩm + blog + label + value) ── */
+        $dup_sql = $wpdb->prepare(
+            "SELECT variant_id FROM {$table}
+             WHERE local_product_name_id = %d
+               AND source_blog_id        = %d
+               AND variant_label          = %s
+               AND variant_value          = %s
+               AND is_deleted             = 0",
+            $product_id,
+            $blog_id,
+            $data['variant_label'],
+            $data['variant_value']
+        );
+
+        if ($variant_id > 0) {
+            // Update – loại trừ chính nó khi kiểm tra trùng
+            $dup_sql .= $wpdb->prepare(" AND variant_id != %d", $variant_id);
+        }
+
+        $dup_id = $wpdb->get_var($dup_sql);
+        if ($dup_id) {
+            self::json_err('Biến thể này đã tồn tại (ID #' . $dup_id . '). Vui lòng kiểm tra lại.');
+            return;
+        }
+        /* ── End duplicate check ── */
+
         if ($variant_id > 0) {
             // Update
             $wpdb->update($table, $data, ['variant_id' => $variant_id]);
