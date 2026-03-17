@@ -70,17 +70,17 @@ add_action('tgs_shop_sidebar_menu', function ($current_view) {
     <li class="menu-item<?php echo $open; ?>">
         <a href="javascript:void(0);" class="menu-link menu-toggle">
             <i class="menu-icon tf-icons bx bx-barcode"></i>
-            <div>Sinh mã định danh</div>
+            <div>Định danh sản phẩm</div>
         </a>
         <ul class="menu-sub">
             <li class="menu-item<?php echo $current_view === 'lot-gen-create' ? ' active' : ''; ?>">
                 <a href="<?php echo esc_url($href('lot-gen-create')); ?>" class="menu-link">
-                    <div>Sinh mã mới</div>
+                    <div>Tạo mã định danh</div>
                 </a>
             </li>
             <li class="menu-item<?php echo $current_view === 'lot-gen-list' ? ' active' : ''; ?>">
                 <a href="<?php echo esc_url($href('lot-gen-list')); ?>" class="menu-link">
-                    <div>DS phiếu sinh mã</div>
+                    <div>DS định danh sản phẩm</div>
                 </a>
             </li>
             <li class="menu-item<?php echo $current_view === 'lot-gen-variants' ? ' active' : ''; ?>">
@@ -113,7 +113,9 @@ add_action('admin_enqueue_scripts', function () {
     }
     if ($view === 'lot-gen-detail') {
         wp_enqueue_script('tgs-lot-gen-detail', TGS_LOT_GEN_URL . 'assets/js/lot-detail.js', ['jquery'], TGS_LOT_GEN_VERSION, true);
-        wp_localize_script('tgs-lot-gen-detail', 'tgsLotGen', tgs_lot_gen_localize_data());
+        $detail_data = tgs_lot_gen_localize_data();
+        $detail_data['boxNonce'] = wp_create_nonce('tgs_box_mgr_nonce');
+        wp_localize_script('tgs-lot-gen-detail', 'tgsLotGen', $detail_data);
     }
     if ($view === 'lot-gen-list') {
         wp_enqueue_script('tgs-lot-gen-list', TGS_LOT_GEN_URL . 'assets/js/lot-list.js', ['jquery'], TGS_LOT_GEN_VERSION, true);

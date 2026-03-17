@@ -1,6 +1,6 @@
 <?php
 /**
- * Chi tiết phiếu sinh mã
+ * Chi tiết phiếu định danh sản phẩm
  *
  * URL: ?page=tgs-shop-management&view=lot-gen-detail&ledger_id=XXX
  *
@@ -21,14 +21,14 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">
-            <i class="bx bx-detail me-2"></i>Chi tiết phiếu sinh mã
+            <i class="bx bx-detail me-2"></i>Chi tiết phiếu định danh sản phẩm
         </h4>
         <div>
             <a href="<?php echo function_exists('tgs_url') ? tgs_url('lot-gen-list') : '#'; ?>" class="btn btn-outline-secondary">
                 <i class="bx bx-arrow-back me-1"></i>Quay lại
             </a>
             <a href="<?php echo function_exists('tgs_url') ? tgs_url('lot-gen-create') : '#'; ?>" class="btn btn-primary ms-1">
-                <i class="bx bx-plus me-1"></i>Sinh mã mới
+                <i class="bx bx-plus me-1"></i>Tạo mã định danh
             </a>
         </div>
     </div>
@@ -82,6 +82,10 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
                 <button type="button" class="btn btn-sm btn-info" id="btnPrint" disabled>
                     <i class="bx bx-printer me-1"></i>In mã định danh (<span id="printCount">0</span>)
                 </button>
+                <div class="vr"></div>
+                <button type="button" class="btn btn-sm btn-primary" id="btnAssignBox" disabled>
+                    <i class="bx bx-package me-1"></i>Gắn vào thùng (<span id="assignBoxCount">0</span>)
+                </button>
             </div>
         </div>
     </div>
@@ -118,13 +122,61 @@ $ledger_id = intval($_GET['ledger_id'] ?? 0);
                         <th>Biến thể</th>
                         <th>Lô</th>
                         <th>HSD</th>
+                        <th>Thùng</th>
                         <th>Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody id="lotsTableBody">
-                    <tr><td colspan="8" class="text-center py-4 text-muted">Đang tải...</td></tr>
+                    <tr><td colspan="9" class="text-center py-4 text-muted">Đang tải...</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Modal: Gắn vào thùng -->
+    <div class="modal fade" id="assignBoxModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bx bx-package me-1"></i>Gắn mã vào thùng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-2" style="font-size:13px;">
+                        <i class="bx bx-info-circle me-1"></i>Đã chọn <b id="modalLotCount">0</b> mã. Tìm thùng còn chỗ trống để gắn.
+                    </p>
+                    <div class="mb-3 position-relative">
+                        <label class="form-label fw-semibold">Tìm thùng</label>
+                        <input type="text" class="form-control" id="searchBoxInput" placeholder="Nhập mã thùng hoặc tên thùng...">
+                        <div id="boxSearchResults" class="list-group position-absolute w-100" style="z-index:1060; max-height:240px; overflow-y:auto; display:none;"></div>
+                    </div>
+                    <!-- Thùng đã chọn -->
+                    <div id="selectedBoxCard" class="card border-primary mb-0" style="display:none;">
+                        <div class="card-body py-2 px-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-bold" id="selBoxTitle">-</div>
+                                    <small class="text-muted">
+                                        <code id="selBoxCode">-</code> · <span id="selBoxType">-</span>
+                                    </small>
+                                    <div class="mt-1">
+                                        <span class="badge bg-label-info" id="selBoxCapacity">-</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearBox">
+                                    <i class="bx bx-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="btnConfirmAssign" disabled>
+                        <i class="bx bx-check me-1"></i>Gắn vào thùng
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

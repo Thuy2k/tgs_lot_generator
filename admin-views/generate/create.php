@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) exit;
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-1">
-                <i class="bx bx-barcode me-2"></i>Sinh mã định danh mới
+                <i class="bx bx-barcode me-2"></i>Tạo mã định danh sản phẩm
             </h4>
             <p class="text-muted mb-0" style="font-size:13px;">Chỉ hiển thị sản phẩm đã bật <strong>theo dõi lô hàng</strong>. Chưa có? Bấm "Thêm nhanh SP".</p>
         </div>

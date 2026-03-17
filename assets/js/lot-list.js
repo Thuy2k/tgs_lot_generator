@@ -1,5 +1,5 @@
 /**
- * lot-list.js — Danh sách phiếu sinh mã
+ * lot-list.js — Danh sách định danh sản phẩm
  *
  * @package tgs_lot_generator
  */

@@ -456,7 +456,7 @@ class TGS_Lot_Generator_Ajax
      * ========================================================================= */
 
     /**
-     * Lấy danh sách phiếu sinh mã (type=16)
+     * Lấy danh sách phiếu định danh sản phẩm (type=16)
      */
     public static function tgs_lot_gen_get_ledgers()
     {
@@ -552,15 +552,20 @@ class TGS_Lot_Generator_Ajax
             $placeholders = implode(',', array_fill(0, count($lot_ids), '%d'));
             $product_table = defined('TGS_TABLE_LOCAL_PRODUCT_NAME') ? TGS_TABLE_LOCAL_PRODUCT_NAME : $wpdb->prefix . 'local_product_name';
 
+            $box_table = defined('TGS_TABLE_GLOBAL_BOX_MANAGER') ? TGS_TABLE_GLOBAL_BOX_MANAGER : 'wp_global_box_manager';
+
             $lots = $wpdb->get_results($wpdb->prepare(
                 "SELECT l.global_product_lot_id, l.global_product_lot_barcode, l.local_product_name_id,
                         l.global_product_lot_price, l.lot_code, l.exp_date, l.mfg_date,
                         l.global_product_lot_is_active, l.local_product_lot_is_active,
                         l.local_product_barcode_main, l.local_product_sku,
                         l.variant_id, l.product_lot_meta, l.is_deleted, l.created_at,
-                        p.local_product_name
+                        l.global_box_manager_id,
+                        p.local_product_name,
+                        bx.box_code AS box_code
                  FROM " . TGS_TABLE_GLOBAL_PRODUCT_LOTS . " l
                  LEFT JOIN {$product_table} p ON l.local_product_name_id = p.local_product_name_id
+                 LEFT JOIN {$box_table} bx ON l.global_box_manager_id = bx.box_id
                  WHERE l.global_product_lot_id IN ({$placeholders})
                  ORDER BY l.global_product_lot_id ASC",
                 ...$lot_ids

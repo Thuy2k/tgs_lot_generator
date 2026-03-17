@@ -1,6 +1,6 @@
 <?php
 /**
- * Danh sách phiếu sinh mã (type=16)
+ * Danh sách định danh sản phẩm (type=16)
  *
  * @package tgs_lot_generator
  */
@@ -12,10 +12,10 @@ if (!defined('ABSPATH')) exit;
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">
-            <i class="bx bx-list-ul me-2"></i>Danh sách phiếu sinh mã
+            <i class="bx bx-list-ul me-2"></i>Danh sách định danh sản phẩm
         </h4>
         <a href="<?php echo function_exists('tgs_url') ? tgs_url('lot-gen-create') : '#'; ?>" class="btn btn-primary">
-            <i class="bx bx-plus me-1"></i>Sinh mã mới
+            <i class="bx bx-plus me-1"></i>Tạo mã định danh
         </a>
     </div>
 

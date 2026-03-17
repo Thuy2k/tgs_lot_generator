@@ -1,5 +1,5 @@
 /**
- * lot-detail.js — Chi tiết phiếu sinh mã
+ * lot-detail.js — Chi tiết phiếu định danh sản phẩm
  *
  * Handles:
  * - Load detail + lots
@@ -17,7 +17,7 @@
     let allLots = [];
 
     if (!ledgerId) {
-        $('#lotsTableBody').html('<tr><td colspan="8" class="text-center text-danger py-4">Không có ledger_id. Vui lòng chọn phiếu từ danh sách.</td></tr>');
+        $('#lotsTableBody').html('<tr><td colspan="9" class="text-center text-danger py-4">Không có ledger_id. Vui lòng chọn phiếu từ danh sách.</td></tr>');
     }
 
     /* ── Toast (lightweight notification) ─────────────────────────── */
@@ -73,7 +73,7 @@
 
     function renderLots() {
         if (!allLots.length) {
-            $('#lotsTableBody').html('<tr><td colspan="8" class="text-center py-4 text-muted">Không có mã nào.</td></tr>');
+            $('#lotsTableBody').html('<tr><td colspan="9" class="text-center py-4 text-muted">Không có mã nào.</td></tr>');
             return;
         }
 
@@ -95,7 +95,11 @@
             const rowClass = isDeleted ? 'table-danger text-decoration-line-through' : '';
             const canCheck = !isDeleted;
 
-            html += `<tr class="lot-row ${rowClass}" data-lot-id="${lot.global_product_lot_id}" data-status="${status}" data-deleted="${lot.is_deleted}">
+            const boxCode = lot.box_code ? `<code>${escHtml(lot.box_code)}</code>` : '';
+
+            const boxId = parseInt(lot.global_box_manager_id) || 0;
+
+            html += `<tr class="lot-row ${rowClass}" data-lot-id="${lot.global_product_lot_id}" data-status="${status}" data-deleted="${lot.is_deleted}" data-box-id="${boxId}">
                 <td class="lot-check-cell">${canCheck ? `<input type="checkbox" class="form-check-input lot-check" value="${lot.global_product_lot_id}" />` : ''}</td>
                 <td>${idx + 1}</td>
                 <td><code class="lot-barcode">${escHtml(lot.global_product_lot_barcode)}</code></td>
@@ -103,6 +107,7 @@
                 <td>${escHtml(variantStr)}</td>
                 <td>${escHtml(lot.lot_code || '-')}</td>
                 <td>${expStr}</td>
+                <td>${boxCode}</td>
                 <td>${statusBadge}</td>
             </tr>`;
         });
@@ -180,6 +185,7 @@
         const canDeactivate = getSelectedIds($tr => $tr.data('status') == 1 && $tr.data('deleted') == 0);
         const canDelete = getSelectedIds($tr => $tr.data('status') == 100 && $tr.data('deleted') == 0);
         const canPrint = getSelectedIds($tr => $tr.data('deleted') == 0);
+        const canAssign = getSelectedIds($tr => $tr.data('deleted') == 0 && !$tr.data('box-id'));
 
         // Selection count
         if (allChecked.length > 0) {
@@ -193,11 +199,13 @@
         $('#deactivateCount').text(canDeactivate.length);
         $('#deleteCount').text(canDelete.length);
         $('#printCount').text(canPrint.length);
+        $('#assignBoxCount').text(canAssign.length);
 
         $('#btnActivate').prop('disabled', !canActivate.length);
         $('#btnDeactivate').prop('disabled', !canDeactivate.length);
         $('#btnDelete').prop('disabled', !canDelete.length);
         $('#btnPrint').prop('disabled', !canPrint.length);
+        $('#btnAssignBox').prop('disabled', !canAssign.length);
     }
 
     /* ── Actions ─────────────────────────────────────────────────── */
@@ -270,6 +278,157 @@
         });
 
         window.open(url, '_blank', 'width=800,height=600');
+    });
+
+    /* ── Assign to Box (Gắn vào thùng) ─────────────────────────── */
+
+    let selectedBox = null;
+    let boxSearchTimer = null;
+
+    $('#btnAssignBox').on('click', function () {
+        const allSelected = getSelectedIds($tr => $tr.data('deleted') == 0);
+        const alreadyInBox = getSelectedIds($tr => $tr.data('deleted') == 0 && $tr.data('box-id') > 0);
+        const ids = getSelectedIds($tr => $tr.data('deleted') == 0 && !$tr.data('box-id'));
+        if (!ids.length && alreadyInBox.length) {
+            showToast('⚠️ Tất cả mã đã chọn đều đã gắn thùng rồi. Vào trang chi tiết thùng để sửa nhé!', 'warning');
+            return;
+        }
+        if (!ids.length) { showToast('⚠️ Chưa chọn mã nào', 'warning'); return; }
+        if (alreadyInBox.length) {
+            showToast(`ℹ️ ${alreadyInBox.length} mã đã gắn thùng sẽ được bỏ qua. Chỉ gắn ${ids.length} mã chưa có thùng.`, 'info');
+        }
+        // Reset modal state
+        selectedBox = null;
+        $('#searchBoxInput').val('');
+        $('#boxSearchResults').hide().empty();
+        $('#selectedBoxCard').hide();
+        $('#btnConfirmAssign').prop('disabled', true);
+        $('#modalLotCount').text(ids.length);
+        // Open modal
+        const modal = new bootstrap.Modal($('#assignBoxModal')[0]);
+        modal.show();
+        setTimeout(() => $('#searchBoxInput').focus(), 300);
+    });
+
+    /* Search boxes as user types */
+    $('#searchBoxInput').on('input', function () {
+        const kw = $.trim($(this).val());
+        clearTimeout(boxSearchTimer);
+        if (kw.length < 1) {
+            $('#boxSearchResults').hide().empty();
+            return;
+        }
+        boxSearchTimer = setTimeout(() => searchBoxes(kw), 300);
+    });
+
+    /* Also search on focus if there's text */
+    $('#searchBoxInput').on('focus', function () {
+        const kw = $.trim($(this).val());
+        if (kw.length >= 1) searchBoxes(kw);
+    });
+
+    function searchBoxes(keyword) {
+        $.post(C.ajaxUrl, {
+            action: 'tgs_box_search_boxes',
+            nonce: C.boxNonce,
+            keyword: keyword
+        }, function (res) {
+            const $list = $('#boxSearchResults');
+            $list.empty();
+            if (!res.success || !res.data.boxes.length) {
+                $list.html('<div class="list-group-item text-muted text-center py-2" style="font-size:13px;">Không tìm thấy thùng nào</div>').show();
+                return;
+            }
+            res.data.boxes.forEach(box => {
+                const capText = box.remaining === -1
+                    ? '<span class="text-success">∞ Không giới hạn</span>'
+                    : `Còn trống: <b>${box.remaining}</b> / ${box.capacity}`;
+                $list.append(
+                    `<a href="#" class="list-group-item list-group-item-action box-search-item py-2" data-box='${JSON.stringify(box)}'>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-semibold" style="font-size:13px;">${escHtml(box.box_title || box.box_code)}</div>
+                                <small class="text-muted"><code>${escHtml(box.box_code)}</code> · ${escHtml(box.box_type)}</small>
+                            </div>
+                            <span class="badge bg-label-info" style="font-size:11px;">${capText}</span>
+                        </div>
+                    </a>`
+                );
+            });
+            $list.show();
+        }).fail(function () {
+            showToast('❌ Lỗi tìm thùng', 'danger');
+        });
+    }
+
+    /* Select a box from search results */
+    $(document).on('click', '.box-search-item', function (e) {
+        e.preventDefault();
+        const box = $(this).data('box');
+        selectedBox = box;
+        $('#selBoxTitle').text(box.box_title || box.box_code);
+        $('#selBoxCode').text(box.box_code);
+        $('#selBoxType').text(box.box_type);
+        const capLabel = box.remaining === -1
+            ? '∞ Không giới hạn'
+            : `Đang chứa: ${box.actual_qty} / ${box.capacity} — Còn trống: ${box.remaining}`;
+        $('#selBoxCapacity').text(capLabel);
+        $('#selectedBoxCard').show();
+        $('#boxSearchResults').hide().empty();
+        $('#searchBoxInput').val('');
+        $('#btnConfirmAssign').prop('disabled', false);
+    });
+
+    /* Clear selected box */
+    $('#btnClearBox').on('click', function () {
+        selectedBox = null;
+        $('#selectedBoxCard').hide();
+        $('#btnConfirmAssign').prop('disabled', true);
+        $('#searchBoxInput').focus();
+    });
+
+    /* Close dropdown when clicking outside */
+    $(document).on('click', function (e) {
+        if (!$(e.target).closest('#searchBoxInput, #boxSearchResults').length) {
+            $('#boxSearchResults').hide();
+        }
+    });
+
+    /* Confirm assign */
+    $('#btnConfirmAssign').on('click', function () {
+        if (!selectedBox) return;
+        const ids = getSelectedIds($tr => $tr.data('deleted') == 0 && !$tr.data('box-id'));
+        if (!ids.length) { showToast('⚠️ Không có mã nào chưa gắn thùng để gắn.', 'warning'); return; }
+
+        // Check capacity (client-side pre-check)
+        if (selectedBox.remaining !== -1 && ids.length > selectedBox.remaining) {
+            showToast(`⚠️ Thùng chỉ còn ${selectedBox.remaining} chỗ trống, bạn đang chọn ${ids.length} mã!`, 'warning');
+            return;
+        }
+
+        const $btn = $(this);
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Đang gắn...');
+
+        $.post(C.ajaxUrl, {
+            action: 'tgs_box_add_items',
+            nonce: C.boxNonce,
+            box_id: selectedBox.box_id,
+            lot_ids: ids
+        }, function (res) {
+            if (res.success) {
+                showToast(`✅ ${res.data.message}`, 'success');
+                // Close modal
+                bootstrap.Modal.getInstance($('#assignBoxModal')[0])?.hide();
+                // Reload detail to refresh data
+                loadDetail();
+            } else {
+                showToast('❌ ' + (res.data?.message || 'Không xác định'), 'danger');
+            }
+        }).fail(function () {
+            showToast('❌ Lỗi kết nối khi gắn vào thùng', 'danger');
+        }).always(function () {
+            $btn.prop('disabled', false).html('<i class="bx bx-check me-1"></i>Gắn vào thùng');
+        });
     });
 
     /* ── Helpers ──────────────────────────────────────────────────── */

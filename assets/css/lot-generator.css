@@ -408,3 +408,24 @@
         margin-bottom: 16px;
     }
 }
+
+/* ── Assign to Box Modal — search results ─────────────────────── */
+#boxSearchResults {
+    border: 1px solid #d4d8dd;
+    border-top: 2px solid #696cff;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    background: #fff;
+    top: 100%;
+}
+#boxSearchResults .list-group-item {
+    border-left: 0;
+    border-right: 0;
+    font-size: 13px;
+}
+#boxSearchResults .list-group-item:hover {
+    background: #f0f0ff;
+}
+#selectedBoxCard {
+    border-left: 3px solid #696cff !important;
+}
