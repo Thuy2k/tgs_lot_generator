@@ -101,7 +101,7 @@ if (!defined('ABSPATH')) exit;
 
                 <!-- ③ Số lượng + Lô -->
                 <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="d-flex align-items-center mb-2">
                             <span class="badge bg-primary rounded-pill me-2" style="font-size:12px;">3</span>
                             <label class="form-label fw-semibold mb-0">Số lượng <span class="text-danger">*</span></label>
@@ -109,15 +109,11 @@ if (!defined('ABSPATH')) exit;
                         <input type="number" id="quantity" name="quantity" class="form-control" min="1" max="5000" value="1" />
                         <small class="text-muted">Tối đa 5000</small>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Mã lô (Lot Code)</label>
                         <input type="text" id="lotCode" name="lot_code" class="form-control" placeholder="VD: LOT-2026-01" />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label fw-semibold">Ngày sản xuất (MFG)</label>
-                        <input type="date" id="mfgDate" name="mfg_date" class="form-control" />
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label fw-semibold">Hạn sử dụng (EXP)</label>
                         <input type="date" id="expDate" name="exp_date" class="form-control" />
                     </div>

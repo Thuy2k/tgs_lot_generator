@@ -294,7 +294,7 @@ class TGS_Lot_Generator_Ajax
 
     /**
      * Sinh mã hàng loạt
-     * Input: product_id, blog_id, quantity, variant_id (optional), lot_code, exp_date, mfg_date
+     * Input: product_id, blog_id, quantity, variant_id (optional), lot_code, exp_date
      *
      * Flow:
      * 1. Tạo phiếu sổ cái type=16
@@ -312,7 +312,7 @@ class TGS_Lot_Generator_Ajax
         $variant_id = intval($_POST['variant_id'] ?? 0);
         $lot_code   = sanitize_text_field($_POST['lot_code'] ?? '');
         $exp_date   = sanitize_text_field($_POST['exp_date'] ?? '');
-        $mfg_date   = sanitize_text_field($_POST['mfg_date'] ?? '');
+
         $note       = sanitize_text_field($_POST['note'] ?? '');
 
         if ($product_id <= 0) { self::json_err('Chưa chọn sản phẩm.'); return; }
@@ -394,7 +394,7 @@ class TGS_Lot_Generator_Ajax
                 'local_product_lot_is_active'  => 100,
                 'lot_code'                   => $lot_code,
                 'exp_date'                   => $exp_date ?: null,
-                'mfg_date'                   => $mfg_date ?: null,
+
                 'barcode_url'                => $barcode_data['barcode_url'] ?? '',
                 'qr_code_url'                => $barcode_data['qr_code_url'] ?? '',
                 'local_product_barcode_main' => $product['local_product_barcode_main'] ?? '',

@@ -482,7 +482,6 @@
             quantity: qty,
             variant_id: $('#variantSelect').val() || 0,
             lot_code: $('#lotCode').val(),
-            mfg_date: $('#mfgDate').val(),
             exp_date: $('#expDate').val(),
             note: $('#note').val()
         }, function (res) {
@@ -521,7 +520,7 @@
     $('#btnReset').on('click', function () {
         $('#clearProduct').trigger('click');
         $('#quantity').val(1);
-        $('#lotCode, #mfgDate, #expDate, #note').val('');
+        $('#lotCode, #expDate, #note').val('');
     });
 
 })(jQuery);
